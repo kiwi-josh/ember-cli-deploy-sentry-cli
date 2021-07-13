@@ -35,7 +35,7 @@ module.exports = {
       didPrepare() {
         const releaseName = `${this.readConfig('appName')}@${this.readConfig('revisionKey')}`;
         const assetsDir = this.readConfig('assetsDir');
-        const urlPrefix = this.readConfig('urlPrefix') ? `--url-prefix ${this.readConfig('urlPrefix')}` : '';
+        const urlPrefix = this.readConfig('urlPrefix') ? `--url-prefix '${this.readConfig('urlPrefix')}'` : '';
 
         this.log('SENTRY: Creating release...');
         this.sentryCliExec('releases', `new ${releaseName}`);
@@ -43,8 +43,10 @@ module.exports = {
         this.log('SENTRY: Assigning commits...');
         this.sentryCliExec('releases', `set-commits ${releaseName} --auto --ignore-missing`);
 
+        const sourcemapsCommand = `files ${releaseName} upload-sourcemaps ${assetsDir} ${urlPrefix} --strip-common-prefix --no-sourcemap-reference`;
         this.log('SENTRY: Uploading source maps...');
-        this.sentryCliExec('releases', `files ${releaseName} upload-sourcemaps --rewrite ${assetsDir} ${urlPrefix}`);
+        this.log('SENTRY: ' + sourcemapsCommand)
+        this.sentryCliExec('releases', sourcemapsCommand);
 
         this.log('SENTRY: Finalizing release...');
         this.sentryCliExec('releases', `finalize ${releaseName}`);
