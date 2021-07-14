@@ -36,17 +36,41 @@ module.exports = {
         const releaseName = `${this.readConfig('appName')}@${this.readConfig('revisionKey')}`;
         const assetsDir = this.readConfig('assetsDir');
         const urlPrefix = this.readConfig('urlPrefix') ? `--url-prefix '${this.readConfig('urlPrefix')}'` : '';
+        const stripPrefix = this.readConfig('stripPrefix') ? `--strip-prefix '${this.readConfig('stripPrefix')}'` : '';
+        const noSourcemapReference = this.readConfig('noSourcemapReference') ? `--no-sourcemap-reference` : '';
+        const noRewrite = this.readConfig('noRewrite') ? `--no-rewrite` : '';
+
+        const setCommits = this.readConfig('setCommits') ? true : false;
+        const uploadFilesCommand = this.readConfig('uploadFilesCommand') ? true : false;
+        const uploadSourcemapFilesCommand = this.readConfig('uploadSourcemapFilesCommand') ? true : false;
+
+        const extConfig = this.readConfig('ext') || [];
+        const ext = extConfig.length ? extConfig.map((e) => `--ext=${e}`).join(' ') : '';
+
+        const filesExtConfig = this.readConfig('ext') || [];
+        const filesExt = extConfig.length ? filesExtConfig.map((e) => `--ext=${e}`).join(' ') : '';
 
         this.log('SENTRY: Creating release...');
         this.sentryCliExec('releases', `new ${releaseName}`);
 
-        this.log('SENTRY: Assigning commits...');
-        this.sentryCliExec('releases', `set-commits ${releaseName} --auto --ignore-missing`);
+        if (setCommits) {
+          this.log('SENTRY: Assigning commits...');
+          this.sentryCliExec('releases', `set-commits ${releaseName} --auto --ignore-missing`);
+        }
 
-        const sourcemapsCommand = `files ${releaseName} upload-sourcemaps ${assetsDir} ${urlPrefix} --strip-common-prefix --no-sourcemap-reference`;
-        this.log('SENTRY: Uploading source maps...');
-        this.log('SENTRY: ' + sourcemapsCommand)
-        this.sentryCliExec('releases', sourcemapsCommand);
+        if (uploadFilesCommand) {
+          const filesCommand = `files ${releaseName} upload ${assetsDir} ${urlPrefix} ${filesExt}`;
+          this.log('SENTRY: Uploading files...');
+          this.log(`SENTRY: ${filesCommand}`)
+          this.sentryCliExec('releases', filesCommand);
+        }
+
+        if (uploadSourcemapFilesCommand) {
+          const sourcemapsCommand = `files ${releaseName} upload-sourcemaps ${assetsDir} ${urlPrefix} ${stripPrefix} ${noSourcemapReference} ${noRewrite} ${ext}`;
+          this.log('SENTRY: Uploading source maps...');
+          this.log(`SENTRY: ${sourcemapsCommand}`)
+          this.sentryCliExec('releases', sourcemapsCommand);
+        }
 
         this.log('SENTRY: Finalizing release...');
         this.sentryCliExec('releases', `finalize ${releaseName}`);
